@@ -1,0 +1,19 @@
+{
+    "KPlugin": {
+        "Authors": [
+            {
+                "Email": "aleix.pol_gonzalez@mercedes-benz.com",
+                "Name": "Aleix Pol"
+            }
+        ],
+        "Category": "Appearance",
+        "Description": "Blur with extra features",
+        "EnabledByDefault": true,
+        "Icon": "preferences-system-windows-effect-blur",
+        "License": "GPL",
+        "Name": "BlurNG",
+        "ServiceTypes": [
+            "KWin/Effect"
+        ]
+    }
+}
