@@ -1,0 +1,5 @@
+File=blur.kcfg
+ClassName=BlurNGConfig
+NameSpace=KWin
+Singleton=true
+Mutators=true

@@ -1,0 +1,22 @@
+<!--
+ SPDX-FileCopyrightText: Copyright (c) 2017-2022, Daimler AG
+ SPDX-FileCopyrightText: Copyright (c) 2022, Mercedes-Benz AG
+ SPDX-FileCopyrightText: Copyright (c) 2023-2024, MBition GmbH
+ SPDX-License-Identifier: GPL-2.0-or-later
+
+ Developed and programmed by Mercedes-Benz Tech Motion GmbH
+ All rights reserved
+-->
+
+<!DOCTYPE RCC><RCC version="1.0">
+<qresource prefix="/effects/blurng/">
+  <file>shaders/downsample.frag</file>
+  <file>shaders/downsample_core.frag</file>
+  <file>shaders/noise.frag</file>
+  <file>shaders/noise_core.frag</file>
+  <file>shaders/upsample.frag</file>
+  <file>shaders/upsample_core.frag</file>
+  <file>shaders/vertex.vert</file>
+  <file>shaders/vertex_core.vert</file>
+</qresource>
+</RCC>
