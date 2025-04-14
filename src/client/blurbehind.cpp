@@ -25,22 +25,6 @@ inline wl_surface *surfaceForWindow(QWindow *window)
     window->create();
     return reinterpret_cast<wl_surface *>(native->nativeResourceForWindow(QByteArrayLiteral("surface"), window));
 }
-static wl_region *createRegion(const QRegion &region)
-{
-    QPlatformNativeInterface *native = qGuiApp->platformNativeInterface();
-    if (!native) {
-        return nullptr;
-    }
-    auto compositor = reinterpret_cast<wl_compositor *>(native->nativeResourceForIntegration(QByteArrayLiteral("compositor")));
-    if (!compositor) {
-        return nullptr;
-    }
-    auto wl_region = wl_compositor_create_region(compositor);
-    for (const auto &rect : region) {
-        wl_region_add(wl_region, rect.x(), rect.y(), rect.width(), rect.height());
-    }
-    return wl_region;
-}
 
 class BlurSurface : public QObject, public QtWayland::mbition_blur_surface_v1
 {
