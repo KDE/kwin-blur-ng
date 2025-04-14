@@ -46,6 +46,7 @@ else()
     target_link_libraries(qtwaylandscanner_kde Qt::Core)
     include(ECMMarkNonGuiExecutable)
     ecm_mark_nongui_executable(qtwaylandscanner_kde)
+    install(TARGETS qtwaylandscanner_kde ${KDE_INSTALL_TARGETS_DEFAULT_ARGS}) # For yocto's native build
 endif()
 
 function(ecm_add_qtwayland_server_protocol_kde target)
