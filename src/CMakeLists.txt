@@ -2,6 +2,9 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 add_subdirectory(client)
+if (ONLY_CLIENT_BUILD)
+    return()
+endif()
 
 include(qtwaylandscannerkde.cmake)
 

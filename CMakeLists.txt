@@ -15,6 +15,8 @@ include(GenerateExportHeader)
 
 set(CMAKE_MODULE_PATH ${ECM_MODULE_PATH})
 
+option(ONLY_CLIENT_BUILD "Build only KWinBlurNG QML Client Plugin" OFF)
+
 include(KDEInstallDirs)
 include(KDECMakeSettings)
 include(KDECompilerSettings NO_POLICY_SCOPE)
@@ -24,7 +26,7 @@ find_package(Qt6WaylandClient ${REQUIRED_QT_VERSION} CONFIG REQUIRED)
 
 find_package(Qt6 ${QT_MIN_VERSION} CONFIG REQUIRED COMPONENTS
     Core
-    Gui
+    Quick
     Widgets
 )
 
@@ -40,25 +42,26 @@ set_package_properties(Wayland PROPERTIES
     PURPOSE "Required for building this effect"
 )
 
-find_package(KDecoration2 6.0 CONFIG)
-set_package_properties(KDecoration2 PROPERTIES
-    TYPE REQUIRED
-    PURPOSE "Required for server side decoration support"
-)
+if (NOT ONLY_CLIENT_BUILD)
+    find_package(KDecoration2 6.0 CONFIG)
+    set_package_properties(KDecoration2 PROPERTIES
+        TYPE REQUIRED
+        PURPOSE "Required for server side decoration support"
+    )
+    find_package(epoxy 1.3 REQUIRED)
+    find_package(KWin REQUIRED)
+
+    find_package(KF6 ${KF_MIN_VERSION} REQUIRED COMPONENTS
+        CoreAddons
+        Config
+    )
+endif()
 
 add_definitions(-DQT_NO_KEYWORDS)
 
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
-find_package(KF6 ${KF_MIN_VERSION} REQUIRED COMPONENTS
-    CoreAddons
-    Config
-    WindowSystem
-)
-find_package(epoxy 1.3 REQUIRED)
-find_package(KWin REQUIRED)
 
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_CXX_STANDARD 20)
