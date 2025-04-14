@@ -6,7 +6,7 @@ if (ONLY_CLIENT_BUILD)
     return()
 endif()
 
-include(qtwaylandscannerkde.cmake)
+add_subdirectory(scanner)
 
 add_library(
     kwin_effect_blur_ng
