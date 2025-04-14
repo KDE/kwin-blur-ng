@@ -192,6 +192,7 @@ void BlurNGEffect::reconfigure(ReconfigureFlags /*flags*/)
     BlurNGConfig::self()->read();
 
     int blurStrength = BlurNGConfig::blurStrength() - 1;
+    Q_ASSERT(blurStrength < blurStrengthValues.size());
     m_iterationCount = blurStrengthValues[blurStrength].iteration;
     m_offset = blurStrengthValues[blurStrength].offset;
     m_expandSize = blurOffsets[m_iterationCount - 1].expandSize;
