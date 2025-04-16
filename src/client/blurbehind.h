@@ -21,7 +21,7 @@ class BlurBehind : public QQuickItem
     Q_OBJECT
     QML_NAMED_ELEMENT(BlurBehind)
     QML_ADDED_IN_VERSION(1, 0)
-    Q_PROPERTY(bool activated READ activated WRITE setActivated)
+    Q_PROPERTY(bool activated READ activated WRITE setActivated NOTIFY activatedChanged)
 public:
     BlurBehind(QQuickItem *target = nullptr);
     ~BlurBehind() override;
@@ -34,7 +34,10 @@ public:
         }
         m_activated = activated;
         refresh();
+        Q_EMIT activatedChanged();
     }
+Q_SIGNALS:
+    void activatedChanged();
 
 protected:
     void itemChange(ItemChange change, const ItemChangeData &value) override;

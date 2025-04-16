@@ -11,6 +11,7 @@
 #include <QPainter>
 #include <qpa/qplatformnativeinterface.h>
 #include "shm.h"
+#include "kwinblurngclientlogging.h"
 
 inline wl_surface *surfaceForWindow(QWindow *window)
 {
@@ -29,9 +30,10 @@ inline wl_surface *surfaceForWindow(QWindow *window)
 class BlurSurface : public QObject, public QtWayland::mbition_blur_surface_v1
 {
 public:
-    BlurSurface(struct ::mbition_blur_surface_v1 *object, QObject *parent)
+    BlurSurface(QWindow *window, struct ::mbition_blur_surface_v1 *object, QObject *parent)
         : QObject(parent)
         , QtWayland::mbition_blur_surface_v1(object)
+        , m_window(window)
     {
     }
 
@@ -40,16 +42,66 @@ public:
         destroy();
     }
 
-    void setMask(QImage &&mask) {
-        Q_ASSERT(!mask.isNull());
-        m_maskBuffer = Shm::instance()->createBuffer(std::move(mask));
-        Q_ASSERT(m_maskBuffer);
-
-        // auto wlr = createRegion(region);
-        set_mask(m_maskBuffer->object());
+    void addMask(BlurBehind *b, QImage &&mask) {
+        Q_ASSERT(b->window() == m_window);
+        auto it = std::find_if(m_masks.begin(), m_masks.end(), [b] (const auto &m) {
+            return m.m_item == b;
+        });
+        if (it != m_masks.end()) {
+            it->m_mask = std::move(mask);
+        } else {
+            m_masks += {b, std::move(mask)};
+        }
+        refresh();
+    }
+    void removeMask(BlurBehind *b) {
+        auto it = std::find_if(m_masks.begin(), m_masks.end(), [b] (const auto &m) {
+            return m.m_item == b;
+        });
+        if (it != m_masks.end()) {
+            m_masks.erase(it);
+            refresh();
+        }
     }
 
 private:
+    void refresh()
+    {
+        if (m_masks.isEmpty()) {
+            setMask({});
+            return;
+        }
+        QImage fullThing(m_window->size(), QImage::Format_Alpha8);
+        fullThing.fill(Qt::transparent);
+
+        for (const Mask &m : std::as_const(m_masks)) {
+            QPainter p(&fullThing);
+            const QPointF pos = m.m_item->mapToGlobal({0, 0});
+            p.drawImage({pos, m.m_mask.size()}, m.m_mask, QRect());
+        }
+
+        // static int i = 0;
+        // fullThing.save(QStringLiteral("/tmp/bananator%1.png").arg(++i));
+        setMask(std::move(fullThing));
+    }
+
+    void setMask(QImage &&mask) {
+        Q_ASSERT(!mask.isNull());
+        m_maskBuffer = Shm::instance()->createBuffer(std::move(mask));
+        if (m_maskBuffer) {
+            // auto wlr = createRegion(region);
+            set_mask(m_maskBuffer->object());
+        } else {
+            qCWarning(KWINBLURNG_CLIENT) << "Failed to create mask";
+        }
+    }
+
+    QWindow *const m_window;
+    struct Mask {
+        BlurBehind *m_item;
+        QImage m_mask;
+    };
+    QVector<Mask> m_masks;
     std::unique_ptr<ShmBuffer> m_maskBuffer;
 };
 
@@ -68,26 +120,31 @@ public:
         return &m;
     }
 
-    void setBlur(QWindow *window, QImage &&mask) {
+    void setBlur(QWindow *window, BlurBehind *item, QImage &&mask) {
         Q_ASSERT(isInitialized());
         Q_ASSERT(window);
         auto surface = surfaceForWindow(window);
         if (!window) {
-            qWarning() << "Cannot set mask to null surface" << window << surface;
-            resetBlur(window);
+            qCWarning(KWINBLURNG_CLIENT) << "Cannot set mask to null surface" << window << surface;
+            resetBlur(item);
             return;
         }
+
         auto &blurSurface = m_surfaces[window];
         if (!blurSurface) {
-            blurSurface = new BlurSurface(get_blur(surface), this);
+            blurSurface = new BlurSurface(window, get_blur(surface), this);
         }
-        blurSurface->setMask(std::move(mask));
+        blurSurface->addMask(item, std::move(mask));
     }
 
-    void resetBlur(QWindow *window)
+    void resetBlur(BlurBehind *b)
     {
-        Q_ASSERT(window);
-        delete m_surfaces.take(window);
+        Q_ASSERT(b);
+        auto it = m_surfaces.find(b->window());
+        if (it == m_surfaces.end()) {
+            return;
+        }
+        (*it)->removeMask(b);
     }
 
 private:
@@ -99,7 +156,10 @@ BlurBehind::BlurBehind(QQuickItem *parent)
 {
 }
 
-BlurBehind::~BlurBehind() = default;
+BlurBehind::~BlurBehind()
+{
+    BlurManager::instance()->resetBlur(this);
+}
 
 void BlurBehind::refresh()
 {
@@ -109,7 +169,7 @@ void BlurBehind::refresh()
     }
 
     if (!isVisible() || !m_activated) {
-        BlurManager::instance()->resetBlur(window());
+        BlurManager::instance()->resetBlur(this);
         return;
     }
 
@@ -119,42 +179,7 @@ void BlurBehind::refresh()
     }
     connect(grab.data(), &QQuickItemGrabResult::ready, this, [this, grab]() {
         auto image = grab->image().convertedTo(QImage::Format_Alpha8);
-        // We normalise against the item's opacity
-        // if (opacity() != 1) {
-        //     for (int y = 0, h = image.height(); y < h; ++y) {
-        //         auto line = image.scanLine(y);
-        //         for (int x = 0, w = image.width(); x < w; ++x) {
-        //             auto nx = line[x] / opacity();
-        //             qDebug() << "wwwwwww" << line[x] << "opacity" << opacity() << "=" << nx;
-        //             line[x] = nx;
-        //         }
-        //     }
-        // }
-        // qDebug() << "waaaaaa" << opacity() << image.save(QStringLiteral("/tmp/potatolo.png"));
-
-        // TODO optimise
-        QImage fullThing(window()->size(), QImage::Format_Alpha8);
-        fullThing.fill(Qt::transparent);
-        const QPointF pos = mapToGlobal({0, 0});
-        {
-            QPainter p(&fullThing);
-            p.drawImage({pos, image.size()}, image, QRect());
-        }
-
-        // static int i = 0;
-        // fullThing.save(QStringLiteral("/tmp/ppp-%1.png").arg(i++));
-
-        // TODO only borders?
-        // QRegion region = QRect({0, 0}, fullThing.size());
-        // for (int y = pos.y(); y < pos.y() + height(); ++y) {
-        //     for (int x = pos.x(); x < pos.x() + width(); ++x) {
-        //         if (qAlpha(fullThing.pixel(x, y)) == 0) { // Check if the pixel is transparent
-        //             region -= QRegion(x, y, 1, 1);
-        //         }
-        //     }
-        // }
-
-        BlurManager::instance()->setBlur(window(), std::move(fullThing));
+        BlurManager::instance()->setBlur(window(), this, std::move(image));
     });
 
 }
