@@ -15,6 +15,7 @@
 #include <unistd.h>
 
 #include <cstring>
+#include <kwinblurngclientlogging.h>
 
 static constexpr auto version = 1;
 
@@ -64,10 +65,10 @@ static wl_shm_format toWaylandFormat(QImage::Format format)
     case QImage::Format_Grayscale8:
         return WL_SHM_FORMAT_R8;
     case QImage::Format_ARGB32:
-        qWarning() << "Unsupported image format: " << format << ". expect slow performance. Use QImage::Format_ARGB32_Premultiplied";
+        qCWarning(KWINBLURNG_CLIENT) << "Unsupported image format: " << format << ". expect slow performance. Use QImage::Format_ARGB32_Premultiplied";
         return WL_SHM_FORMAT_ARGB8888;
     default:
-        qWarning() << "Unsupported image format: " << format << ". expect slow performance.";
+        qCWarning(KWINBLURNG_CLIENT) << "Unsupported image format: " << format << ". expect slow performance.";
         return WL_SHM_FORMAT_ARGB8888;
     }
 }
@@ -104,19 +105,19 @@ std::unique_ptr<ShmBuffer> Shm::createBuffer(QImage &&image)
     }
 
     if (fd == -1) {
-        qDebug() << "Could not open temporary file for Shm pool";
+        qCWarning(KWINBLURNG_CLIENT) << "Could not open temporary file for Shm pool";
         return {};
     }
 
     if (ftruncate(fd, byteCount) < 0) {
-        qDebug() << "Could not set size for Shm pool file";
+        qCWarning(KWINBLURNG_CLIENT) << "Could not set size for Shm pool file";
         close(fd);
         return {};
     }
     auto data = mmap(nullptr, byteCount, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 
     if (data == MAP_FAILED) {
-        qDebug() << "Creating Shm pool failed";
+        qCWarning(KWINBLURNG_CLIENT) << "Creating Shm pool failed";
         close(fd);
         return {};
     }
