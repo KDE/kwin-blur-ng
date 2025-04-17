@@ -168,7 +168,7 @@ void BlurBehind::refresh()
         return;
     }
 
-    if (!isVisible() || !m_activated) {
+    if (!isVisible() || !m_activated || width() <= 0 || height() <= 0) {
         BlurManager::instance()->resetBlur(this);
         return;
     }
@@ -188,6 +188,7 @@ void BlurBehind::itemChange(ItemChange change, const ItemChangeData &value)
 {
     Q_UNUSED(change);
     Q_UNUSED(value);
+    QQuickItem::itemChange(change, value);
     refresh();
 }
 
@@ -195,6 +196,7 @@ void BlurBehind::geometryChange(const QRectF &newGeometry, const QRectF &oldGeom
 {
     Q_UNUSED(newGeometry);
     Q_UNUSED(oldGeometry);
+    QQuickItem::geometryChange(newGeometry, oldGeometry);
     refresh();
 }
 
