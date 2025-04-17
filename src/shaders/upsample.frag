@@ -32,7 +32,7 @@ void main(void)
             gl_FragColor = texture2D(original, uv);
             return;
         }
-        gl_FragColor = mix(texture2D(original, uv), sum(), alpha);s
+        gl_FragColor = mix(texture2D(original, uv), sum(), alpha);
     } else {
         gl_FragColor = sum();
     }
