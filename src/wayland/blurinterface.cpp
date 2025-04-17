@@ -50,27 +50,21 @@ public:
     SurfaceInterface *const m_surface;
     std::shared_ptr<GLTexture> m_texture;
 
-    bool loadShmTexture()
+    bool loadShmTexture(const QRegion &update)
     {
         const GraphicsBufferView view(m_buffer.buffer());
         if (Q_UNLIKELY(view.isNull())) {
             return false;
         }
 
-        m_texture = GLTexture::upload(*view.image());
+        if (!m_texture || m_texture->size() != m_buffer->size()) {
+            m_texture = GLTexture::upload(*view.image());
+        } else {
+            for (const QRect &rect : update) {
+                m_texture->update(*view.image(), rect.topLeft(), rect);
+            }
+        }
         return m_texture.get();
-    }
-
-    void updateShmTexture(GraphicsBuffer *buffer, const QRegion &region)
-    {
-        const GraphicsBufferView view(buffer);
-        if (Q_UNLIKELY(view.isNull())) {
-            return;
-        }
-
-        for (const QRect &rect : region) {
-            m_texture->update(*view.image(), rect.topLeft(), rect);
-        }
     }
 
 protected:
@@ -79,7 +73,6 @@ protected:
     void mbition_blur_surface_v1_set_mask(Resource *resource, struct ::wl_resource *mask) override {
         m_texture.reset();
         m_buffer = Display::bufferForResource(mask);
-        Q_ASSERT(m_buffer->shmAttributes()); //TODO add support for dmabuf?
         Q_EMIT q->blurChanged(m_surface);
     }
 
@@ -133,9 +126,7 @@ std::shared_ptr<GLTexture> BlurNGManagerInterface::mask(SurfaceInterface *surfac
     if (!x) {
         return nullptr;
     }
-    if (!x->d->m_texture) {
-        x->d->loadShmTexture();
-    }
+    x->d->loadShmTexture(QRect{{0,0}, x->d->m_buffer->size()});
     return x->d->m_texture;
 }
 
