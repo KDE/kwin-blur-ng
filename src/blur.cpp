@@ -103,7 +103,10 @@ BlurNGEffect::BlurNGEffect()
             s_blurManager = new BlurNGManagerInterface(effects->waylandDisplay(), s_blurManagerRemoveTimer);
 
             connect(s_blurManager, &BlurNGManagerInterface::blurChanged, this, [this](SurfaceInterface *surface) {
-                updateBlurRegion(effects->findWindow(surface));
+                auto w = effects->findWindow(surface);
+                if (w) {
+                    updateBlurRegion(w);
+                }
             });
         }
     }
@@ -209,6 +212,7 @@ QRegion BlurNGEffect::blurRegion(EffectWindow *w) const
 
 void BlurNGEffect::updateBlurRegion(EffectWindow *w)
 {
+    Q_ASSERT(w);
     SurfaceInterface *surf = w->surface();
 
     if (w->internalWindow()) {
