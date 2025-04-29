@@ -29,12 +29,19 @@ inline wl_surface *surfaceForWindow(QWindow *window)
 
 class BlurSurface : public QObject, public QtWayland::mbition_blur_surface_v1
 {
+    Q_OBJECT
 public:
     BlurSurface(QWindow *window, struct ::mbition_blur_surface_v1 *object, QObject *parent)
         : QObject(parent)
         , QtWayland::mbition_blur_surface_v1(object)
         , m_window(window)
     {
+        connect(window, &QWindow::visibilityChanged, this, [this] {
+            if (m_window->visibility() != QWindow::Hidden) {
+                return;
+            }
+            Q_EMIT forgetMask(m_window);
+        });
     }
 
     ~BlurSurface() override
@@ -64,11 +71,14 @@ public:
         }
     }
 
+Q_SIGNALS:
+    void forgetMask(QWindow *window);
+
 private:
     void refresh()
     {
         if (m_masks.isEmpty()) {
-            setMask({});
+            Q_EMIT forgetMask(m_window);
             return;
         }
         QImage fullThing(m_window->size(), QImage::Format_Alpha8);
@@ -86,7 +96,9 @@ private:
     }
 
     void setMask(QImage &&mask) {
-        Q_ASSERT(!mask.isNull());
+        if (mask.isNull()) {
+            Q_EMIT forgetMask(m_window);
+        }
         m_maskBuffer = Shm::instance()->createBuffer(std::move(mask));
         if (m_maskBuffer) {
             // auto wlr = createRegion(region);
@@ -133,6 +145,9 @@ public:
         auto &blurSurface = m_surfaces[window];
         if (!blurSurface) {
             blurSurface = new BlurSurface(window, get_blur(surface), this);
+            connect(blurSurface, &BlurSurface::forgetMask, this, [this] (QWindow *window) {
+                delete m_surfaces.take(window);
+            });
         }
         blurSurface->addMask(item, std::move(mask));
     }
@@ -164,7 +179,7 @@ BlurBehind::~BlurBehind()
 void BlurBehind::refresh()
 {
     // TODO: Should probably combine and centralise all the blur regions on the window
-    if (!m_completed || !window()) {
+    if (!m_completed || !window() || !window()->isVisible()) {
         return;
     }
 
@@ -209,3 +224,5 @@ void BlurBehind::componentComplete()
     connect(this, &QQuickItem::visibleChanged, this, &BlurBehind::refresh);
     connect(window(), &QWindow::visibilityChanged, this, &BlurBehind::refresh);
 }
+
+#include "blurbehind.moc"

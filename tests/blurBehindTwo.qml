@@ -11,17 +11,48 @@ import QtQuick.Controls as QQC2
 import org.kde.blurng
 
 Window {
-    width: 200; height: 200
+    id: root
+    width: 200
+    height: 200
     flags: Qt.WA_TranslucentBackground
     color: "transparent"
-    Component.onCompleted: {
-        showFullScreen()
+    visibility: Window.FullScreen
+    property bool activated: true
+
+    MouseArea {
+        anchors.fill: parent
+        onClicked: {
+            root.visible = false
+            aux.show()
+        }
+    }
+
+    Window {
+        id: aux
+        width: 200
+        height: 200
+        visibility: root.visibility === Window.Hidden ? Window.Windowed : Window.Hidden
+        Rectangle {
+            color: "red"
+            anchors.fill: parent
+        }
+        MouseArea {
+            anchors.fill: parent
+            onClicked: {
+                root.visible = true;
+            }
+        }
+        Text {
+            anchors.centerIn: parent
+            text: "Restore!"
+        }
     }
 
     BlurBehind {
         width: rect1.width; height: rect1.height
         anchors.centerIn: rect1
         opacity: 0.0001
+        activated: root.activated
 
         Rectangle {
             // This is a mask
@@ -56,7 +87,7 @@ Window {
         width: rect2.width; height: rect2.height
         anchors.centerIn: rect2
         opacity: 0.0001
-        onActivatedChanged: console.log("WWWW", activated)
+        activated: root.activated
 
         Rectangle {
             // This is a mask
