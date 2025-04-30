@@ -70,7 +70,7 @@ public:
 protected:
     void mbition_blur_surface_v1_destroy(Resource *resource) override;
     void mbition_blur_surface_v1_destroy_resource(Resource *resource) override;
-    void mbition_blur_surface_v1_set_mask(Resource *resource, struct ::wl_resource *mask) override {
+    void mbition_blur_surface_v1_set_mask(Resource */*resource*/, struct ::wl_resource *mask) override {
         m_texture.reset();
         m_buffer = Display::bufferForResource(mask);
         Q_EMIT q->blurChanged(m_surface);
@@ -103,7 +103,7 @@ void BlurNGManagerInterfacePrivate::mbition_blur_manager_v1_get_blur(Resource *r
     }
     auto &blur = m_blurs[s];
     if (blur) {
-        wl_resource_post_error(resource->handle, MBITION_BLUR_MANAGER_V1_ERROR_BLUR_EXISTS, "the surface already has been provided");
+        wl_resource_post_error(resource->handle, MBITION_BLUR_MANAGER_V1_ERROR_BLUR_EXISTS, "the surface has already been provided");
         return;
     }
     blur = new BlurNGSurfaceInterface(blur_resource, s);
@@ -124,6 +124,11 @@ std::shared_ptr<GLTexture> BlurNGManagerInterface::mask(SurfaceInterface *surfac
 {
     auto x = d->m_blurs[surface];
     if (!x) {
+        qDebug() << "surface not blurred";
+        return nullptr;
+    }
+    if (!x->d->m_buffer) {
+        //no mask
         return nullptr;
     }
     x->d->loadShmTexture(QRect{{0,0}, x->d->m_buffer->size()});
