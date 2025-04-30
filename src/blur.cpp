@@ -106,6 +106,7 @@ BlurNGEffect::BlurNGEffect()
                 auto w = effects->findWindow(surface);
                 if (w) {
                     updateBlurRegion(w);
+                    effects->addRepaint(w->frameGeometry());
                 }
             });
         }
