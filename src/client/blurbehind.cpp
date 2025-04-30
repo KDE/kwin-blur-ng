@@ -34,13 +34,14 @@ public:
     BlurSurface(QWindow *window, struct ::mbition_blur_surface_v1 *object, QObject *parent)
         : QObject(parent)
         , QtWayland::mbition_blur_surface_v1(object)
+        , m_fullThing(window->size(), QImage::Format_Alpha8)
         , m_window(window)
     {
         connect(window, &QWindow::visibilityChanged, this, [this] {
             if (m_window->visibility() != QWindow::Hidden) {
                 return;
             }
-            Q_EMIT forgetMask(m_window);
+            Q_EMIT forgetSurface(m_window);
         });
     }
 
@@ -70,7 +71,7 @@ public:
     }
 
 Q_SIGNALS:
-    void forgetMask(QWindow *window);
+    void forgetSurface(QWindow *window);
 
 private:
     void refresh()
@@ -79,25 +80,15 @@ private:
             Q_EMIT forgetSurface(m_window);
             return;
         }
-        QImage fullThing(m_window->size(), QImage::Format_Alpha8);
-        fullThing.fill(Qt::transparent);
+        m_fullThing.fill(Qt::transparent);
 
-        QPainter p(&fullThing);
+        QPainter p(&m_fullThing);
         for (const auto [item, mask] : std::as_const(m_masks).asKeyValueRange()) {
             const QPointF pos = item->mapToGlobal({0, 0});
             p.drawImage({pos, mask.size()}, mask, QRect());
         }
 
-        // static int i = 0;
-        // fullThing.save(QStringLiteral("/tmp/bananator%1.png").arg(++i));
-        setMask(std::move(fullThing));
-    }
-
-    void setMask(QImage &&mask) {
-        if (mask.isNull()) {
-            Q_EMIT forgetMask(m_window);
-        }
-        m_maskBuffer = Shm::instance()->createBuffer(std::move(mask));
+        m_maskBuffer = Shm::instance()->createBuffer(m_fullThing);
         if (m_maskBuffer) {
             // auto wlr = createRegion(region);
             set_mask(m_maskBuffer->object());
@@ -106,6 +97,8 @@ private:
         }
     }
 
+    friend class BlurManager;
+    QImage m_fullThing;
     QWindow *const m_window;
     QHash<BlurBehind *, QImage> m_masks;
     std::unique_ptr<ShmBuffer> m_maskBuffer;
@@ -139,7 +132,7 @@ public:
         auto &blurSurface = m_surfaces[window];
         if (!blurSurface) {
             blurSurface = new BlurSurface(window, get_blur(surface), this);
-            connect(blurSurface, &BlurSurface::forgetMask, this, [this] (QWindow *window) {
+            connect(blurSurface, &BlurSurface::forgetSurface, this, [this] (QWindow *window) {
                 delete m_surfaces.take(window);
             });
         }

@@ -73,7 +73,7 @@ static wl_shm_format toWaylandFormat(QImage::Format format)
     }
 }
 
-std::unique_ptr<ShmBuffer> Shm::createBuffer(QImage &&image)
+std::unique_ptr<ShmBuffer> Shm::createBuffer(QImage &image)
 {
     if (image.isNull()) {
         return {};
