@@ -51,22 +51,20 @@ public:
 
     void addMask(BlurBehind *b, QImage &&mask) {
         Q_ASSERT(b->window() == m_window);
-        auto it = std::find_if(m_masks.begin(), m_masks.end(), [b] (const auto &m) {
-            return m.m_item == b;
-        });
+        auto it = m_masks.find(b);
         if (it != m_masks.end()) {
-            it->m_mask = std::move(mask);
+            *it = std::move(mask);
         } else {
-            m_masks += {b, std::move(mask)};
+            m_masks.insert(b, std::move(mask));
+            connect(b, &QObject::destroyed, this, [this, b] () {
+                removeMask(b);
+            });
         }
         refresh();
     }
     void removeMask(BlurBehind *b) {
-        auto it = std::find_if(m_masks.begin(), m_masks.end(), [b] (const auto &m) {
-            return m.m_item == b;
-        });
-        if (it != m_masks.end()) {
-            m_masks.erase(it);
+        const int removed = m_masks.remove(b);
+        if (removed > 0) {
             refresh();
         }
     }
@@ -78,16 +76,16 @@ private:
     void refresh()
     {
         if (m_masks.isEmpty()) {
-            Q_EMIT forgetMask(m_window);
+            Q_EMIT forgetSurface(m_window);
             return;
         }
         QImage fullThing(m_window->size(), QImage::Format_Alpha8);
         fullThing.fill(Qt::transparent);
 
-        for (const Mask &m : std::as_const(m_masks)) {
-            QPainter p(&fullThing);
-            const QPointF pos = m.m_item->mapToGlobal({0, 0});
-            p.drawImage({pos, m.m_mask.size()}, m.m_mask, QRect());
+        QPainter p(&fullThing);
+        for (const auto [item, mask] : std::as_const(m_masks).asKeyValueRange()) {
+            const QPointF pos = item->mapToGlobal({0, 0});
+            p.drawImage({pos, mask.size()}, mask, QRect());
         }
 
         // static int i = 0;
@@ -109,11 +107,7 @@ private:
     }
 
     QWindow *const m_window;
-    struct Mask {
-        BlurBehind *m_item;
-        QImage m_mask;
-    };
-    QVector<Mask> m_masks;
+    QHash<BlurBehind *, QImage> m_masks;
     std::unique_ptr<ShmBuffer> m_maskBuffer;
 };
 
