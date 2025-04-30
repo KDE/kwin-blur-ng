@@ -77,7 +77,7 @@ private:
     void refresh()
     {
         if (m_masks.isEmpty()) {
-            Q_EMIT forgetSurface(m_window);
+            unset_mask();
             return;
         }
         m_fullThing.fill(Qt::transparent);
