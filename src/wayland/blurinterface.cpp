@@ -108,6 +108,9 @@ void BlurNGManagerInterfacePrivate::mbition_blur_manager_v1_get_blur(Resource *r
     }
     blur = new BlurNGSurfaceInterface(blur_resource, s);
     q->connect(blur, &BlurNGSurfaceInterface::blurChanged, q, &BlurNGManagerInterface::blurChanged);
+    q->connect(s, &SurfaceInterface::aboutToBeDestroyed, q, [this, s] {
+        m_blurs.remove(s);
+    });
 }
 
 BlurNGManagerInterface::BlurNGManagerInterface(Display *display, QObject *parent)
