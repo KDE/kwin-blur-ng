@@ -123,7 +123,7 @@ public:
         Q_ASSERT(isInitialized());
         Q_ASSERT(window);
         auto surface = surfaceForWindow(window);
-        if (!window) {
+        if (!surface) {
             qCWarning(KWINBLURNG_CLIENT) << "Cannot set mask to null surface" << window << surface;
             resetBlur(item);
             return;
