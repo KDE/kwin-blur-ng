@@ -18,11 +18,18 @@ Window {
         showFullScreen()
     }
 
+    Rectangle {
+        color: "white"
+        radius: width
+        anchors.fill: blur
+        opacity: 0.3
+    }
+
     BNG.BlurBehind {
+        id: blur
         x: 10; y: 10
         width: 50; height: 50
-        // activated: false
-        opacity: .3
+        opacity: .0003
 
         Rectangle {
             color: "white"

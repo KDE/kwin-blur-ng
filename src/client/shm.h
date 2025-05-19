@@ -26,7 +26,7 @@ class Shm : public QWaylandClientExtensionTemplate<Shm>, public QtWayland::wl_sh
 public:
     static Shm *instance();
     ~Shm();
-    std::unique_ptr<ShmBuffer> createBuffer(QImage &image);
+    std::unique_ptr<ShmBuffer> createBuffer(const QImage &image);
 
 private:
     Shm(QObject *parent);

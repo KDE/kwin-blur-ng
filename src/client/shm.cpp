@@ -73,7 +73,7 @@ static wl_shm_format toWaylandFormat(QImage::Format format)
     }
 }
 
-std::unique_ptr<ShmBuffer> Shm::createBuffer(QImage &image)
+std::unique_ptr<ShmBuffer> Shm::createBuffer(const QImage &image)
 {
     if (image.isNull()) {
         return {};
@@ -134,7 +134,7 @@ std::unique_ptr<ShmBuffer> Shm::createBuffer(QImage &image)
         }
     }();
 
-    std::memcpy(static_cast<char *>(data), srcImage.bits(), byteCount);
+    std::memcpy(static_cast<char *>(data), srcImage.constBits(), byteCount);
 
     munmap(data, byteCount);
     close(fd);

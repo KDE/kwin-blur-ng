@@ -33,6 +33,9 @@ struct BlurNGEffectData
     /// The region that should be blurred behind the window
     std::shared_ptr<GLTexture> content = nullptr;
 
+    /// area covered by either masks
+    QRegion region;
+
     /// The render data per screen. Screens can have different color spaces.
     std::unordered_map<Output *, BlurNGRenderData> render;
 };

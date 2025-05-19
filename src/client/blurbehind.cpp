@@ -34,7 +34,6 @@ public:
     BlurSurface(QWindow *window, struct ::mbition_blur_surface_v1 *object, QObject *parent)
         : QObject(parent)
         , QtWayland::mbition_blur_surface_v1(object)
-        , m_fullThing(window->size(), QImage::Format_Alpha8)
         , m_window(window)
     {
         connect(window, &QWindow::visibilityChanged, this, [this] {
@@ -50,60 +49,67 @@ public:
         destroy();
     }
 
-    void addMask(BlurBehind *b, QImage &&mask) {
-        Q_ASSERT(b->window() == m_window);
-        auto it = m_masks.find(b);
-        if (it != m_masks.end()) {
-            *it = std::move(mask);
-        } else {
-            m_masks.insert(b, std::move(mask));
-            connect(b, &QObject::destroyed, this, [this, b] () {
-                removeMask(b);
-            });
-        }
-        refresh();
-    }
-    void removeMask(BlurBehind *b) {
-        const int removed = m_masks.remove(b);
-        if (removed > 0) {
-            refresh();
-        }
-    }
-
 Q_SIGNALS:
     void forgetSurface(QWindow *window);
 
 private:
-    void refresh()
+
+    friend class BlurManager;
+    QWindow *const m_window;
+};
+
+class BlurMask : public QtWayland::mbition_blur_mask_v1
+{
+public:
+    BlurMask(struct ::mbition_blur_mask_v1 *object)
+        : QtWayland::mbition_blur_mask_v1(object)
     {
-        if (m_masks.isEmpty()) {
-            unset_mask();
+        Q_ASSERT(object);
+    }
+    ~BlurMask()
+    {
+        destroy();
+    }
+
+    void setMask(QImage &&mask) {
+        if (m_mask == mask) {
             return;
         }
-        m_fullThing.fill(Qt::transparent);
 
-        QPainter p(&m_fullThing);
-        for (const auto [item, mask] : std::as_const(m_masks).asKeyValueRange()) {
-            const QPointF pos = item->mapToGlobal({0, 0});
-            p.drawImage({pos, mask.size()}, mask, QRect());
-        }
-
-        m_maskBuffer = Shm::instance()->createBuffer(m_fullThing);
+        m_mask = std::move(mask);
+        m_maskBuffer = Shm::instance()->createBuffer(m_mask);
         if (m_maskBuffer) {
-            // auto wlr = createRegion(region);
             set_mask(m_maskBuffer->object());
         } else {
             qCWarning(KWINBLURNG_CLIENT) << "Failed to create mask";
         }
     }
+    void setGeometry(const QRectF& geo) {
+        if (geo == m_geo)
+            return;
+        m_geo = geo;
+        set_geometry(geo.x(), geo.y(), geo.width(), geo.height());
+    }
 
-    friend class BlurManager;
-    QImage m_fullThing;
-    QWindow *const m_window;
-    QHash<BlurBehind *, QImage> m_masks;
+    void setSurface(BlurSurface *surface)
+    {
+        Q_ASSERT(isInitialized());
+        if (m_surface == surface) {
+            return;
+        }
+
+        m_surface = surface;
+        if (surface) {
+            Q_ASSERT(object());
+            m_surface->add_mask(object());
+        }
+    }
+
+    QRectF m_geo;
+    QImage m_mask;
     std::unique_ptr<ShmBuffer> m_maskBuffer;
+    QPointer<BlurSurface> m_surface;
 };
-
 
 class BlurManager : public QWaylandClientExtensionTemplate<BlurManager>, public QtWayland::mbition_blur_manager_v1
 {
@@ -119,15 +125,14 @@ public:
         return &m;
     }
 
-    void setBlur(QWindow *window, BlurBehind *item, QImage &&mask) {
+    BlurSurface *surface(QWindow *window)
+    {
         Q_ASSERT(isInitialized());
         auto surface = surfaceForWindow(window);
         if (!surface) {
             qCWarning(KWINBLURNG_CLIENT) << "Cannot set mask to null surface" << window << surface;
-            resetBlur(item);
-            return;
+            return nullptr;
         }
-
         auto &blurSurface = m_surfaces[window];
         if (!blurSurface) {
             blurSurface = new BlurSurface(window, get_blur(surface), this);
@@ -135,17 +140,7 @@ public:
                 delete m_surfaces.take(window);
             });
         }
-        blurSurface->addMask(item, std::move(mask));
-    }
-
-    void resetBlur(BlurBehind *b)
-    {
-        Q_ASSERT(b);
-        auto it = m_surfaces.find(b->window());
-        if (it == m_surfaces.end()) {
-            return;
-        }
-        (*it)->removeMask(b);
+        return blurSurface;
     }
 
 private:
@@ -159,18 +154,26 @@ BlurBehind::BlurBehind(QQuickItem *parent)
 
 BlurBehind::~BlurBehind()
 {
-    BlurManager::instance()->resetBlur(this);
 }
 
 void BlurBehind::refresh()
 {
-    // TODO: Should probably combine and centralise all the blur regions on the window
     if (!m_completed || !window() || !window()->isVisible()) {
+        m_mask.reset();
         return;
     }
 
     if (!isVisible() || !m_activated || width() <= 0 || height() <= 0) {
-        BlurManager::instance()->resetBlur(this);
+        m_mask.reset();
+        return;
+    }
+
+    bool anyVisibleChild = false;
+    for (auto x : childItems()) {
+        anyVisibleChild |= x->isVisible() && x->opacity() > 0.01;
+    }
+    if (!anyVisibleChild) {
+        m_mask.reset();
         return;
     }
 
@@ -178,17 +181,26 @@ void BlurBehind::refresh()
     if (!grab) {
         return;
     }
+
     connect(grab.data(), &QQuickItemGrabResult::ready, this, [this, grab]() {
+        if (!window()) {
+            m_mask.reset();
+            return;
+        }
         auto image = grab->image().convertedTo(QImage::Format_Alpha8);
-        BlurManager::instance()->setBlur(window(), this, std::move(image));
+        if (!m_mask) {
+            m_mask = std::make_unique<BlurMask>(BlurManager::instance()->get_blur_mask());
+        }
+        m_mask->setMask(std::move(image));
+        m_mask->setGeometry({mapToGlobal({0, 0}), QSizeF{width(), height()}});
+        m_mask->done();
+        m_mask->setSurface(BlurManager::instance()->surface(window()));
     });
 
 }
 
 void BlurBehind::itemChange(ItemChange change, const ItemChangeData &value)
 {
-    Q_UNUSED(change);
-    Q_UNUSED(value);
     QQuickItem::itemChange(change, value);
     refresh();
 }
@@ -198,6 +210,7 @@ void BlurBehind::geometryChange(const QRectF &newGeometry, const QRectF &oldGeom
     Q_UNUSED(newGeometry);
     Q_UNUSED(oldGeometry);
     QQuickItem::geometryChange(newGeometry, oldGeometry);
+    // TODO full refresh just when the size changes?
     refresh();
 }
 

@@ -61,17 +61,17 @@
            summary="the surface"/>
     </request>
 
-    <!--<request name="get_blur_mask">
+    <request name="get_blur_mask">
       <description summary="get a blur mask">
         Create a blur mask object. A blur mask object is used to specify
         the portions of the surface background that shows through.
       </description>
       <arg name="id" type="new_id" interface="mbition_blur_mask_v1"
            summary="the new mbition_blur_mask_v1 object"/>
-    </request>-->
+    </request>
   </interface>
 
-  <!--<interface name="mbition_blur_mask_v1" version="1">
+  <interface name="mbition_blur_mask_v1" version="1">
     <description summary="blur mask">
       The blur mask specifies the portions of the surface background that
       show through.
@@ -84,9 +84,7 @@
              summary="tried to set an invalid mask"/>
     </enum>
 
-    <request name="destroy" type="destructor">
-      Notify the compositor that the blur mask object will no longer be used.
-    </request>
+    <request name="destroy" type="destructor" />
 
     <request name="set_mask">
       <description summary="set the alpha mask">
@@ -101,7 +99,7 @@
       <arg name="mask" type="object" interface="wl_buffer"/>
     </request>
 
-    <request name="set_scale">
+    <!--<request name="set_scale">
       <description summary="sets the alpha mask buffer scale">
         Sets the alpha mask buffer scale.
 
@@ -109,19 +107,26 @@
         value of 1 and 240 corresponds to a scale value of 2.
       </description>
       <arg name="scale" type="uint" />
-    </request>
+    </request>-->
 
-    <request name="set_center">
+    <request name="set_geometry">
       <description summary="set the center tile geometry">
-        Sets the geometry of the center tile. The geometry is specified in the
+        Sets the geometry of the mask. The geometry is specified in the
         surface local coordinates.
       </description>
-      <arg name="x" type="uint"/>
-      <arg name="y" type="uint"/>
+      <arg name="x" type="int"/>
+      <arg name="y" type="int"/>
       <arg name="width" type="uint"/>
       <arg name="height" type="uint"/>
     </request>
-  </interface>-->
+
+    <request name="done">
+      <description summary="mask population complete">
+        The appropriate mask and geometry have been sent.
+        On refreshes, properties may be skipped.
+      </description>
+    </request>
+  </interface>
 
   <interface name="mbition_blur_surface_v1" version="1">
     <description summary="blur object for a surface">
@@ -139,7 +144,7 @@
       </description>
     </request>
 
-    <request name="set_mask">
+    <request name="add_mask">
       <description summary="set the alpha mask">
         Sets the blur alpha mask.
 
@@ -148,17 +153,7 @@
         The blur mask is double buffered, and will be applied at the
         time wl_surface.commit of the corresponding wl_surface is called.
       </description>
-      <arg name="mask" type="object" interface="wl_buffer"/>
-<!--       <arg name="region" type="object" interface="wl_region" allow-null="true" summary="region of the mask within the surface"/> -->
-    </request>
-
-    <request name="unset_mask">
-      <description summary="unset the alpha mask">
-        Unsets the blur alpha mask.
-
-        The blur mask is double buffered, and will be applied at the
-        time wl_surface.commit of the corresponding wl_surface is called.
-      </description>
+      <arg name="mask" type="object" interface="mbition_blur_mask_v1"/>
     </request>
   </interface>
 </protocol>
