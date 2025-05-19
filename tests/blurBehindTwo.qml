@@ -104,7 +104,7 @@ Window {
         y: parent.height / 2
         width: 500
         height: 200
-        radius: 20
+        radius: 50
 
         opacity: 0.2
         Drag.active: dragArea2.drag.active

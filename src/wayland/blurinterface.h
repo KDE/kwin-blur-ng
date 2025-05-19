@@ -17,11 +17,14 @@ struct wl_resource;
 
 namespace KWin
 {
+class BlurNGSurfaceInterface;
 class BlurNGManagerInterfacePrivate;
 class BlurNGSurfaceInterfacePrivate;
+class BlurNGMaskInterfacePrivate;
 class Display;
-class SurfaceInterface;
 class GLTexture;
+class GraphicsBufferRef;
+class SurfaceInterface;
 
 class BlurNGManagerInterface : public QObject
 {
@@ -30,7 +33,7 @@ public:
     explicit BlurNGManagerInterface(Display *display, QObject *parent = nullptr);
     ~BlurNGManagerInterface() override;
 
-    std::shared_ptr<GLTexture> mask(SurfaceInterface *surface) const;
+    BlurNGSurfaceInterface *surface(SurfaceInterface *surface) const;
     void remove();
 
 Q_SIGNALS:
@@ -41,7 +44,7 @@ private:
 };
 
 /**
- * @brief Represents the Resource for the mbition_blur_mask_v1 interface.
+ * @brief Represents the Resource for the mbition_blur_surface_v1 interface.
  *
  * Lifespan matches the underlying client resource
  */
@@ -50,6 +53,9 @@ class BlurNGSurfaceInterface : public QObject
     Q_OBJECT
 public:
     ~BlurNGSurfaceInterface() override;
+
+    std::shared_ptr<GLTexture> mask() const;
+    QRegion region() const;
 
 Q_SIGNALS:
     void blurChanged(SurfaceInterface *s);
@@ -60,6 +66,33 @@ private:
     friend class BlurNGManagerInterfacePrivate;
 
     std::unique_ptr<BlurNGSurfaceInterfacePrivate> d;
+};
+
+/**
+ * @brief Represents the Resource for the mbition_blur_mask_v1 interface.
+ *
+ * Lifespan matches the underlying client resource
+ */
+class BlurNGMaskInterface : public QObject
+{
+    Q_OBJECT
+public:
+    ~BlurNGMaskInterface() override;
+
+    QRect geometry() const;
+    GraphicsBufferRef buffer() const;
+
+Q_SIGNALS:
+    void aboutToBeDestroyed();
+    void maskChanged();
+
+private:
+    explicit BlurNGMaskInterface(wl_resource *resource);
+    friend class BlurNGManagerInterface;
+    friend class BlurNGManagerInterfacePrivate;
+    friend class BlurNGSurfaceInterfacePrivate;
+
+    std::unique_ptr<BlurNGMaskInterfacePrivate> d;
 };
 
 }

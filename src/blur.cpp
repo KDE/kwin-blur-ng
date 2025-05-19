@@ -208,7 +208,11 @@ void BlurNGEffect::reconfigure(ReconfigureFlags /*flags*/)
 
 QRegion BlurNGEffect::blurRegion(EffectWindow *w) const
 {
-    return w->rect().toRect();
+    QRegion region;
+    if (auto it = m_windows.find(w); it != m_windows.end()) {
+        region = it->second.region;
+    }
+    return region;
 }
 
 void BlurNGEffect::updateBlurRegion(EffectWindow *w)
@@ -226,10 +230,11 @@ void BlurNGEffect::updateBlurRegion(EffectWindow *w)
         return;
     }
 
-    auto mask = s_blurManager->mask(surf);
-    if (mask) {
+    auto blurSurface = s_blurManager->surface(surf);
+    if (blurSurface) {
         BlurNGEffectData &data = m_windows[w];
-        data.content = mask;
+        data.content = blurSurface->mask();
+        data.region = blurSurface->region();
     } else {
         if (auto it = m_windows.find(w); it != m_windows.end()) {
             effects->makeOpenGLContextCurrent();

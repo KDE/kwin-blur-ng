@@ -15,6 +15,7 @@
 #include "qwayland-mbition-blur-v1.h"
 
 class BlurManager;
+class BlurMask;
 
 class BlurBehind : public QQuickItem
 {
@@ -47,6 +48,7 @@ private:
     void refresh();
     bool m_completed = true;
     bool m_activated = true;
+    std::unique_ptr<BlurMask> m_mask;
 };
 
 #endif
