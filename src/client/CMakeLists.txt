@@ -2,7 +2,7 @@ ecm_add_qml_module(KWinBlurNG
                   GENERATE_PLUGIN_SOURCE
                   URI "org.kde.blurng"
                   VERSION 1.0
-                  SOURCES blurbehind.cpp shm.cpp)
+                  SOURCES blurbehind.cpp blurclient.cpp blurbehindmask.cpp shm.cpp)
 
 target_link_libraries(KWinBlurNG PRIVATE Qt::Quick Qt::WaylandClient Qt::GuiPrivate)
 
