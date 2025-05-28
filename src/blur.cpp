@@ -450,7 +450,7 @@ GLTexture *BlurNGEffect::ensureNoiseTexture()
 void BlurNGEffect::blur(const RenderTarget &renderTarget, const RenderViewport &viewport, EffectWindow *w, int mask, const QRegion &region, WindowPaintData &data)
 {
     auto it = m_windows.find(w);
-    if (it == m_windows.end()) {
+    if (it == m_windows.end() || !it->second.content) {
         return;
     }
 

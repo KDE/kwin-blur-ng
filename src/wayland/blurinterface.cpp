@@ -15,6 +15,7 @@
 #include <core/graphicsbuffer.h>
 #include <core/graphicsbufferview.h>
 #include "qwayland-server-mbition-blur-v1.h"
+#include <kwinblurng_debug.h>
 
 namespace KWin
 {
@@ -40,6 +41,9 @@ public:
     void mbition_blur_mask_v1_set_mask(Resource *resource, struct ::wl_resource *mask) override
     {
         m_buffer = Display::bufferForResource(mask);
+        if (!m_buffer.buffer()) [[unlikely]] {
+            qCWarning(KWIN_BLUR) << "received empty mask buffer";
+        }
         m_texture.reset();
         m_dirty = true;
     }
@@ -65,9 +69,13 @@ public:
 
     std::shared_ptr<GLTexture> texture() {
         if (!m_texture) {
+            if (!m_buffer.buffer()) {
+                qCWarning(KWIN_BLUR) << "empty mask buffer";
+                return nullptr;
+            }
             GraphicsBufferView view(m_buffer.buffer());
             if (view.isNull()) {
-                qDebug() << "empty mask";
+                qCWarning(KWIN_BLUR) << "empty mask";
                 return nullptr;
             }
             m_texture = GLTexture::upload(*view.image());
@@ -159,7 +167,9 @@ public:
             maskProjectionMatrix.translate(geo.left() - reg.left(), geo.top() - reg.top());
             shaderBinder.shader()->setUniform(GLShader::Mat4Uniform::ModelViewProjectionMatrix, maskProjectionMatrix);
             auto tex = mask->d->texture();
-            tex->render({{0,0}, tex->size()}, update, tex->size());
+            if (tex) {
+                tex->render({{0,0}, tex->size()}, update, reg.size());
+            }
         }
         glDisable(GL_BLEND);
         GLFramebuffer::popFramebuffer();
