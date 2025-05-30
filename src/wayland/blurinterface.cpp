@@ -167,8 +167,8 @@ public:
             maskProjectionMatrix.translate(geo.left() - reg.left(), geo.top() - reg.top());
             shaderBinder.shader()->setUniform(GLShader::Mat4Uniform::ModelViewProjectionMatrix, maskProjectionMatrix);
             auto tex = mask->d->texture();
-            if (tex) {
-                tex->render({{0,0}, tex->size()}, update, reg.size());
+            if (tex) [[likely]] {
+                tex->render({{0,0}, tex->size()}, update, mask->d->m_geometry.size());
             }
         }
         glDisable(GL_BLEND);
