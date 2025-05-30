@@ -24,13 +24,13 @@ inline wl_surface *surfaceForWindow(QWindow *window)
 BlurSurface* BlurManager::surface(QWindow* window)
 {
     Q_ASSERT(isInitialized());
-    auto surface = surfaceForWindow(window);
-    if (!surface) {
-        qCWarning(KWINBLURNG_CLIENT) << "Cannot set mask to null surface" << window << surface;
-        return nullptr;
-    }
     auto &blurSurface = m_surfaces[window];
     if (!blurSurface) {
+        auto surface = surfaceForWindow(window);
+        if (!surface) {
+            qCWarning(KWINBLURNG_CLIENT) << "Cannot set mask to null surface" << window << surface;
+            return nullptr;
+        }
         blurSurface = new BlurSurface(window, get_blur(surface), this);
         connect(blurSurface, &BlurSurface::forgetSurface, this, [this] (QWindow *window) {
             delete m_surfaces.take(window);
