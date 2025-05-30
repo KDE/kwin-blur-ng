@@ -18,7 +18,6 @@ Window {
     flags: Qt.WA_TranslucentBackground
     color: "transparent"
     visibility: visibleButton.checked ? Window.FullScreen : Window.Hidden
-    property bool activated: true
 
     Window {
         id: aux
