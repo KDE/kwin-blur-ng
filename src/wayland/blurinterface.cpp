@@ -168,7 +168,7 @@ public:
             shaderBinder.shader()->setUniform(GLShader::Mat4Uniform::ModelViewProjectionMatrix, maskProjectionMatrix);
             auto tex = mask->d->texture();
             if (tex) [[likely]] {
-                tex->render({{0,0}, tex->size()}, update, mask->d->m_geometry.size());
+                tex->render({{0,0}, tex->size()}, update, geo.size());
             }
         }
         glDisable(GL_BLEND);
