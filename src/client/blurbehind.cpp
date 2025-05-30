@@ -41,17 +41,22 @@ void BlurBehind::refresh()
         return;
     }
 
-    QSharedPointer<QQuickItemGrabResult> grab = grabToImage();
-    if (!grab) {
+    if (m_lastGrab) {
+        m_schedule = true;
         return;
     }
 
-    connect(grab.data(), &QQuickItemGrabResult::ready, this, [this, grab]() {
+    m_lastGrab = grabToImage();
+    if (!m_lastGrab) {
+        return;
+    }
+
+    connect(m_lastGrab.data(), &QQuickItemGrabResult::ready, this, [this]() {
         if (!window()) {
             m_mask.reset();
             return;
         }
-        auto image = grab->image().convertedTo(QImage::Format_Alpha8);
+        auto image = m_lastGrab->image().convertedTo(QImage::Format_Alpha8);
         if (!m_mask) {
             m_mask = std::make_unique<BlurMask>(BlurManager::instance()->get_blur_mask());
         }
@@ -59,6 +64,11 @@ void BlurBehind::refresh()
         m_mask->setGeometry({mapToGlobal({0, 0}), QSizeF{width(), height()}});
         m_mask->done();
         m_mask->setSurface(BlurManager::instance()->surface(window()));
+        if (m_schedule) {
+            QTimer::singleShot(0, this, &BlurBehind::refresh);
+            m_schedule = false;
+        }
+        m_lastGrab.reset();
     });
 
 }

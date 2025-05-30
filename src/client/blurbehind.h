@@ -46,6 +46,8 @@ private:
     bool m_completed = true;
     bool m_activated = true;
     std::unique_ptr<BlurMask> m_mask;
+    QSharedPointer<QQuickItemGrabResult> m_lastGrab;
+    bool m_schedule = false;
 };
 
 #endif
