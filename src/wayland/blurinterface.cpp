@@ -64,7 +64,7 @@ public:
             return;
         }
         Q_EMIT q->maskChanged();
-        m_dirty = true;
+        m_dirty = false;
     }
 
     std::shared_ptr<GLTexture> texture() {
