@@ -60,12 +60,12 @@ public:
         destroy();
     }
 
-    void setMask(QImage &&mask) {
+    void setMask(const QImage &mask) {
         if (m_mask == mask) {
             return;
         }
 
-        m_mask = std::move(mask);
+        m_mask = mask;
         m_maskBuffer = Shm::instance()->createBuffer(m_mask);
         if (m_maskBuffer) {
             set_mask(m_maskBuffer->object());

@@ -56,9 +56,7 @@ void BlurBehindMask::refresh()
     const bool create = !m_mask;
     if (create) {
         m_mask = std::make_unique<BlurMask>(BlurManager::instance()->get_blur_mask());
-        QImage mask(m_maskPath);
-        mask.convertTo(QImage::Format_Grayscale8);
-        m_mask->setMask(std::move(mask));
+        m_mask->setMask(m_maskImage);
     }
     m_mask->setGeometry({mapToGlobal({0, 0}), QSizeF{width(), height()}});
     m_mask->done();
@@ -71,8 +69,13 @@ void BlurBehindMask::setMaskPath(const QString &maskPath)
         return;
     }
     m_maskPath = maskPath;
+    setMask(QImage(m_maskPath));
     Q_EMIT maskPathChanged();
-
-    refresh();
 }
 
+void BlurBehindMask::setMask(const QImage& mask)
+{
+    m_maskImage = mask.convertedTo(QImage::Format_Grayscale8);
+    refresh();
+    Q_EMIT maskChanged();
+}

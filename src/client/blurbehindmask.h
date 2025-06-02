@@ -21,6 +21,7 @@ class BlurBehindMask : public QQuickItem
     QML_ADDED_IN_VERSION(1, 0)
     Q_PROPERTY(bool activated READ activated WRITE setActivated NOTIFY activatedChanged)
     Q_PROPERTY(QString maskPath READ maskPath WRITE setMaskPath NOTIFY maskPathChanged)
+    Q_PROPERTY(QImage mask READ mask WRITE setMask NOTIFY maskChanged)
 public:
     BlurBehindMask(QQuickItem *target = nullptr);
     ~BlurBehindMask() override;
@@ -39,9 +40,13 @@ public:
     QString maskPath() const { return m_maskPath; }
     void setMaskPath(const QString &maskPath);
 
+    QImage mask() const { return m_maskImage; }
+    void setMask(const QImage &mask);
+
 Q_SIGNALS:
     void activatedChanged();
     void maskPathChanged();
+    void maskChanged();
 
 protected:
     void geometryChange(const QRectF &newGeometry, const QRectF &oldGeometry) override;
@@ -51,5 +56,6 @@ private:
     bool m_completed = true;
     bool m_activated = true;
     QString m_maskPath;
+    QImage m_maskImage;
     std::unique_ptr<BlurMask> m_mask;
 };
