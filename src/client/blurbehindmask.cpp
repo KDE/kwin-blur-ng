@@ -76,6 +76,12 @@ void BlurBehindMask::setMaskPath(const QString &maskPath)
 void BlurBehindMask::setMask(const QImage& mask)
 {
     m_maskImage = mask.convertedTo(QImage::Format_Grayscale8);
-    refresh();
+    if (!m_mask) {
+        refresh();
+    } else {
+        m_mask->setGeometry({mapToGlobal({0, 0}), QSizeF{width(), height()}});
+        m_mask->setMask(m_maskImage);
+        m_mask->done();
+    }
     Q_EMIT maskChanged();
 }
