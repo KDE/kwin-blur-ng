@@ -56,6 +56,8 @@ public:
 
     std::shared_ptr<GLTexture> mask() const;
     QRegion region() const;
+    void scheduleBlurChanged();
+    void emitBlurChanged();
 
 Q_SIGNALS:
     void blurChanged(SurfaceInterface *s);

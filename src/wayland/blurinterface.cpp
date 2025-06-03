@@ -182,17 +182,28 @@ protected:
     void mbition_blur_surface_v1_add_mask(Resource */*resource*/, struct ::wl_resource *maskResource) override {
         m_texture.reset();
         auto mask = static_cast<BlurNGMaskInterfacePrivate *>(BlurNGMaskInterfacePrivate::Resource::fromResource(maskResource)->object())->q;
-        QObject::connect(mask, &BlurNGMaskInterface::maskChanged, q, [this] {
-            Q_EMIT q->blurChanged(m_surface);
-        });
+        QObject::connect(mask, &BlurNGMaskInterface::maskChanged, q, &BlurNGSurfaceInterface::scheduleBlurChanged);
         QObject::connect(mask, &BlurNGMaskInterface::aboutToBeDestroyed, q, [this, mask] {
             m_masks.removeAll(mask);
-            Q_EMIT q->blurChanged(m_surface);
+            q->scheduleBlurChanged();
         });
         m_masks.append(mask);
-        Q_EMIT q->blurChanged(m_surface);
+        q->scheduleBlurChanged();
     }
 };
+
+void BlurNGSurfaceInterface::scheduleBlurChanged()
+{
+    Q_ASSERT(d->m_surface);
+    // Synchronise it with the surface commit
+    connect(d->m_surface, &SurfaceInterface::committed, this, &BlurNGSurfaceInterface::emitBlurChanged, Qt::UniqueConnection);
+}
+
+void BlurNGSurfaceInterface::emitBlurChanged()
+{
+    disconnect(d->m_surface, &SurfaceInterface::committed, this, &BlurNGSurfaceInterface::emitBlurChanged);
+    Q_EMIT blurChanged(d->m_surface);
+}
 
 BlurNGManagerInterfacePrivate::BlurNGManagerInterfacePrivate(BlurNGManagerInterface *_q, Display *d)
     : QtWaylandServer::mbition_blur_manager_v1(*d, s_version)
