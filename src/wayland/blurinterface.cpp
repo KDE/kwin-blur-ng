@@ -116,10 +116,11 @@ public:
         , q(q)
         , m_surface(s)
     {
+        Q_ASSERT(m_surface);
     }
 
     BlurNGSurfaceInterface *const q;
-    SurfaceInterface *const m_surface;
+    QPointer<SurfaceInterface> const m_surface;
     std::shared_ptr<GLTexture> m_texture;
     QVector<BlurNGMaskInterface *> m_masks;
     std::unique_ptr<GLFramebuffer> m_fbo;
@@ -194,7 +195,6 @@ protected:
 
 void BlurNGSurfaceInterface::scheduleBlurChanged()
 {
-    Q_ASSERT(d->m_surface);
     // Synchronise it with the surface commit
     connect(d->m_surface, &SurfaceInterface::committed, this, &BlurNGSurfaceInterface::emitBlurChanged, Qt::UniqueConnection);
 }
@@ -262,6 +262,7 @@ BlurNGSurfaceInterface *BlurNGManagerInterface::surface(SurfaceInterface *surfac
 
 std::shared_ptr<GLTexture> BlurNGSurfaceInterface::mask() const
 {
+    Q_ASSERT(d->m_surface);
     d->loadShmTexture(QRect{{0,0}, d->m_surface->size().toSize()});
     return d->m_texture;
 }
