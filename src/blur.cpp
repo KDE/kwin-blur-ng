@@ -773,7 +773,7 @@ void BlurNGEffect::blur(const RenderTarget &renderTarget, const RenderViewport &
 
 bool BlurNGEffect::isActive() const
 {
-    return m_valid && !effects->isScreenLocked();
+    return m_valid && !effects->isScreenLocked() && m_windows.size() > 0;
 }
 
 bool BlurNGEffect::blocksDirectScanout() const
