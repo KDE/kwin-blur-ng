@@ -13,6 +13,7 @@
 BlurBehindMask::BlurBehindMask(QQuickItem *parent)
     : QQuickItem(parent)
 {
+    connect(this, &BlurBehindMask::intensityChanged, this, &BlurBehindMask::refresh);
 }
 
 BlurBehindMask::~BlurBehindMask()
@@ -27,7 +28,7 @@ void BlurBehindMask::geometryChange(const QRectF &newGeometry, const QRectF &old
 
     if (m_mask) {
         m_mask->setGeometry({mapToGlobal({0, 0}), QSizeF{width(), height()}});
-        m_mask->done();
+        m_mask->sendDone();
     }
 }
 
@@ -48,7 +49,7 @@ void BlurBehindMask::refresh()
         return;
     }
 
-    if (!isVisible() || !m_activated || width() <= 0 || height() <= 0) {
+    if (!isVisible() || !m_activated || width() <= 0 || height() <= 0 || m_intensity <= 0) {
         m_mask.reset();
         return;
     }
@@ -58,8 +59,9 @@ void BlurBehindMask::refresh()
         m_mask = std::make_unique<BlurMask>(BlurManager::instance()->get_blur_mask());
         m_mask->setMask(m_maskImage);
     }
+    m_mask->setIntensity(m_intensity);
     m_mask->setGeometry({mapToGlobal({0, 0}), QSizeF{width(), height()}});
-    m_mask->done();
+    m_mask->sendDone();
     m_mask->setSurface(BlurManager::instance()->surface(window()));
 }
 
@@ -80,8 +82,9 @@ void BlurBehindMask::setMask(const QImage& mask)
         refresh();
     } else {
         m_mask->setGeometry({mapToGlobal({0, 0}), QSizeF{width(), height()}});
+        m_mask->setIntensity(m_intensity);
         m_mask->setMask(m_maskImage);
-        m_mask->done();
+        m_mask->sendDone();
     }
     Q_EMIT maskChanged();
 }

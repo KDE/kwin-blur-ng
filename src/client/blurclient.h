@@ -66,12 +66,11 @@ public:
         }
 
         m_mask = mask;
-        m_maskBuffer = Shm::instance()->createBuffer(m_mask);
-        if (m_maskBuffer) {
-            set_mask(m_maskBuffer->object());
-        } else {
-            qCWarning(KWINBLURNG_CLIENT) << "Failed to create mask";
-        }
+        m_dirty = true;
+    }
+    void setIntensity(qreal intensity) {
+        m_intensity = intensity;
+        m_dirty = true;
     }
     void setGeometry(const QRectF& geo) {
         if (geo == m_geo)
@@ -94,8 +93,18 @@ public:
         }
     }
 
+    void sendMask();
+    void sendDone() {
+        if (m_dirty) {
+            sendMask();
+        }
+        done();
+    }
+
+    qreal m_intensity = 1;
     QRectF m_geo;
     QImage m_mask;
+    bool m_dirty = true;
     std::unique_ptr<ShmBuffer> m_maskBuffer;
     QPointer<BlurSurface> m_surface;
 };

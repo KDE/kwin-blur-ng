@@ -14,6 +14,7 @@
 BlurBehind::BlurBehind(QQuickItem *parent)
     : QQuickItem(parent)
 {
+    connect(this, &BlurBehind::intensityChanged, this, &BlurBehind::refresh);
 }
 
 BlurBehind::~BlurBehind()
@@ -27,7 +28,7 @@ void BlurBehind::refresh()
         return;
     }
 
-    if (!isVisible() || !m_activated || width() <= 0 || height() <= 0) {
+    if (!isVisible() || !m_activated || width() <= 0 || height() <= 0 || m_intensity < 0.01) {
         m_mask.reset();
         return;
     }
@@ -60,9 +61,10 @@ void BlurBehind::refresh()
         if (!m_mask) {
             m_mask = std::make_unique<BlurMask>(BlurManager::instance()->get_blur_mask());
         }
-        m_mask->setMask(std::move(image));
+        m_mask->setIntensity(m_intensity);
         m_mask->setGeometry({mapToGlobal({0, 0}), QSizeF{width(), height()}});
-        m_mask->done();
+        m_mask->setMask(std::move(image));
+        m_mask->sendDone();
         m_mask->setSurface(BlurManager::instance()->surface(window()));
         if (m_schedule) {
             QTimer::singleShot(0, this, &BlurBehind::refresh);

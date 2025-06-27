@@ -20,6 +20,7 @@ class BlurBehind : public QQuickItem
     QML_NAMED_ELEMENT(BlurBehind)
     QML_ADDED_IN_VERSION(1, 0)
     Q_PROPERTY(bool activated READ activated WRITE setActivated NOTIFY activatedChanged)
+    Q_PROPERTY(qreal intensity MEMBER m_intensity NOTIFY intensityChanged)
 public:
     BlurBehind(QQuickItem *target = nullptr);
     ~BlurBehind() override;
@@ -36,6 +37,7 @@ public:
     }
 Q_SIGNALS:
     void activatedChanged();
+    void intensityChanged(qreal intensity);
 
 protected:
     void itemChange(ItemChange change, const ItemChangeData &value) override;
@@ -48,6 +50,7 @@ private:
     std::unique_ptr<BlurMask> m_mask;
     QSharedPointer<QQuickItemGrabResult> m_lastGrab;
     bool m_schedule = false;
+    qreal m_intensity = 1.;
 };
 
 #endif

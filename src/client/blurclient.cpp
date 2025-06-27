@@ -21,6 +21,28 @@ inline wl_surface *surfaceForWindow(QWindow *window)
     return reinterpret_cast<wl_surface *>(native->nativeResourceForWindow(QByteArrayLiteral("surface"), window));
 }
 
+void BlurMask::sendMask()
+{
+    if (m_intensity != 1 && !m_mask.isNull()) {
+        QImage withIntensity = m_mask.copy();
+        for (int y = 0; y < withIntensity.height(); ++y) {
+            auto line = withIntensity.scanLine(y);
+            for (int x = 0; x < withIntensity.width(); ++x) {
+                line[x] *= m_intensity;
+            }
+        }
+        m_maskBuffer = Shm::instance()->createBuffer(withIntensity);
+    } else {
+        m_maskBuffer = Shm::instance()->createBuffer(m_mask);
+    }
+
+    if (m_maskBuffer) {
+        set_mask(m_maskBuffer->object());
+    } else {
+        qCWarning(KWINBLURNG_CLIENT) << "Failed to create mask";
+    }
+}
+
 BlurSurface* BlurManager::surface(QWindow* window)
 {
     Q_ASSERT(isInitialized());
