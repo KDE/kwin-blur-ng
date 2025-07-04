@@ -59,6 +59,7 @@ Window {
             color: "yellow"
             anchors.fill: parent
             radius: rect1.radius
+            opacity: 0.2
         }
     }
 
@@ -94,6 +95,7 @@ Window {
             color: "yellow"
             anchors.fill: parent
             radius: rect2.radius
+            opacity: 0.8
         }
     }
 
@@ -104,7 +106,7 @@ Window {
         y: parent.height / 2
         width: 500
         height: 200
-        radius: 50
+        radius: 100
 
         opacity: 0.2
         Drag.active: dragArea2.drag.active

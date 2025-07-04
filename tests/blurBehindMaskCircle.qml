@@ -19,10 +19,10 @@ Window {
     }
 
     BNG.BlurBehindMask {
-        id: blur
         x: 10; y: 10
         width: 500; height: 500
         maskPath: "happymask.png"
+        intensity: 0.3
 
         Drag.active: dragArea.drag.active
         Drag.hotSpot.x: width / 2
@@ -30,6 +30,24 @@ Window {
 
         MouseArea {
             id: dragArea
+            anchors.fill: parent
+
+            drag.target: parent
+        }
+    }
+
+    BNG.BlurBehindMask {
+        x: 500; y: 100
+        width: 500; height: 500
+        maskPath: "happymask.png"
+        intensity: 0.7
+
+        Drag.active: dragArea1.drag.active
+        Drag.hotSpot.x: width / 2
+        Drag.hotSpot.y: height / 2
+
+        MouseArea {
+            id: dragArea1
             anchors.fill: parent
 
             drag.target: parent

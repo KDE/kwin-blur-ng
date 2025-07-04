@@ -150,6 +150,7 @@ public:
         GLFramebuffer::pushFramebuffer(m_fbo.get());
         m_texture->bind();
         glEnable(GL_BLEND);
+        glBlendFunc(GL_ONE, GL_ONE);
 
         for (auto mask : std::as_const(m_masks)) {
             const QRectF geo = mask->geometry();
