@@ -197,7 +197,9 @@ protected:
 void BlurNGSurfaceInterface::scheduleBlurChanged()
 {
     // Synchronise it with the surface commit
-    connect(d->m_surface, &SurfaceInterface::committed, this, &BlurNGSurfaceInterface::emitBlurChanged, Qt::UniqueConnection);
+    if (d->m_surface) {
+        connect(d->m_surface, &SurfaceInterface::committed, this, &BlurNGSurfaceInterface::emitBlurChanged, Qt::UniqueConnection);
+    }
 }
 
 void BlurNGSurfaceInterface::emitBlurChanged()
