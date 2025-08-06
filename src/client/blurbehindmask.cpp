@@ -44,7 +44,7 @@ void BlurBehindMask::componentComplete()
 
 void BlurBehindMask::refresh()
 {
-    if (!m_completed || !window() || !window()->isVisible() || m_maskPath.isNull()) {
+    if (!m_completed || !window() || !window()->isVisible() || m_maskPath.isNull() || !BlurManager::instance()->isInitialized()) {
         m_mask.reset();
         return;
     }

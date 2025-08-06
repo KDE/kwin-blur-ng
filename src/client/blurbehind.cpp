@@ -23,7 +23,7 @@ BlurBehind::~BlurBehind()
 
 void BlurBehind::refresh()
 {
-    if (!m_completed || !window() || !window()->isVisible()) {
+    if (!m_completed || !window() || !window()->isVisible() || !BlurManager::instance()->isInitialized()) {
         m_mask.reset();
         return;
     }

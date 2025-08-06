@@ -116,7 +116,6 @@ public:
         : QWaylandClientExtensionTemplate<BlurManager>(1)
     {
         initialize();
-        Q_ASSERT(isInitialized());
     }
 
     static BlurManager *instance() {
