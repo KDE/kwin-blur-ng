@@ -29,8 +29,7 @@ void main(void)
         vec2 uv2 = vec2(uv.x, 1.0 - uv.y);
         float alpha = texture(alphaMask, uv2).r;
         if (alpha == 0.) {
-            fragColor = texture(original, uv);
-            return;
+            discard;
         }
         fragColor = mix(texture(original, uv), sum(), alpha);
     } else {

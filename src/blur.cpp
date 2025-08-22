@@ -201,6 +201,12 @@ void BlurNGEffect::reconfigure(ReconfigureFlags /*flags*/)
     m_offset = blurStrengthValues[blurStrength].offset;
     m_expandSize = blurOffsets[m_iterationCount - 1].expandSize;
     m_noiseStrength = BlurNGConfig::noiseStrength();
+    m_blurUpdateInterval = BlurNGConfig::updateInterval();
+
+    if (m_blurUpdateInterval < 1)
+    {
+        m_blurUpdateInterval = 1;
+    }
 
     // Update all windows for the blur to take effect
     effects->addRepaintFull();
@@ -505,6 +511,15 @@ void BlurNGEffect::blur(const RenderTarget &renderTarget, const RenderViewport &
         return;
     }
 
+    bool shouldBlur = false;
+
+    if ((blurInfo.frameIndex == 0) || (blurInfo.lastBackgroundRect != backgroundRect)) {
+        shouldBlur = true;
+        blurInfo.lastBackgroundRect = backgroundRect;
+    }
+
+    blurInfo.frameIndex = (blurInfo.frameIndex + 1) % m_blurUpdateInterval;
+
     // Maybe reallocate offscreen render targets. Keep in mind that the first one contains
     // original background behind the window, it's not blurred.
     GLenum textureFormat = GL_RGBA8;
@@ -533,12 +548,16 @@ void BlurNGEffect::blur(const RenderTarget &renderTarget, const RenderViewport &
             renderInfo.textures.push_back(std::move(texture));
             renderInfo.framebuffers.push_back(std::move(framebuffer));
         }
+
+        shouldBlur = true;
     }
 
-    // Fetch the pixels behind the shape that is going to be blurred.
-    const QRegion dirtyRegion = region & backgroundRect;
-    for (const QRect &dirtyRect : dirtyRegion) {
-        renderInfo.framebuffers[0]->blitFromRenderTarget(renderTarget, viewport, dirtyRect, dirtyRect.translated(-backgroundRect.topLeft()));
+    if (shouldBlur) {
+        // Fetch the pixels behind the shape that is going to be blurred.
+        const QRegion dirtyRegion = region & backgroundRect;
+        for (const QRect &dirtyRect : dirtyRegion) {
+            renderInfo.framebuffers[0]->blitFromRenderTarget(renderTarget, viewport, dirtyRect, dirtyRect.translated(-backgroundRect.topLeft()));
+        }
     }
 
     // Upload the geometry: the first 6 vertices are used when downsampling and upsampling offscreen,
@@ -646,7 +665,7 @@ void BlurNGEffect::blur(const RenderTarget &renderTarget, const RenderViewport &
     vbo->bindArrays();
 
     // The downsample pass of the dual Kawase algorithm: the background will be scaled down 50% every iteration.
-    {
+    if (shouldBlur) {
         ShaderManager::instance()->pushShader(m_downsamplePass.shader.get());
 
         QMatrix4x4 projectionMatrix;
@@ -685,21 +704,24 @@ void BlurNGEffect::blur(const RenderTarget &renderTarget, const RenderViewport &
         m_upsamplePass.shader->setUniform("original", 2);
         m_upsamplePass.shader->setUniform("finalRound", false);
 
-        for (size_t i = renderInfo.framebuffers.size() - 1; i > 1; --i) {
+        if (shouldBlur) {
+            for (size_t i = renderInfo.framebuffers.size() - 1; i > 1; --i) {
+                GLFramebuffer::popFramebuffer();
+                const auto &read = renderInfo.framebuffers[i];
+
+                const QVector2D halfpixel(0.5 / read->colorAttachment()->width(),
+                                          0.5 / read->colorAttachment()->height());
+                m_upsamplePass.shader->setUniform(m_upsamplePass.halfpixelLocation, halfpixel);
+
+                read->colorAttachment()->bind();
+
+                vbo->draw(GL_TRIANGLES, 0, 6);
+            }
+
+            // The last upsampling pass is rendered on the screen, not in framebuffers[0].
             GLFramebuffer::popFramebuffer();
-            const auto &read = renderInfo.framebuffers[i];
-
-            const QVector2D halfpixel(0.5 / read->colorAttachment()->width(),
-                                      0.5 / read->colorAttachment()->height());
-            m_upsamplePass.shader->setUniform(m_upsamplePass.halfpixelLocation, halfpixel);
-
-            read->colorAttachment()->bind();
-
-            vbo->draw(GL_TRIANGLES, 0, 6);
         }
 
-        // The last upsampling pass is rendered on the screen, not in framebuffers[0].
-        GLFramebuffer::popFramebuffer();
         const auto &read = renderInfo.framebuffers[1];
 
         projectionMatrix = viewport.projectionMatrix();

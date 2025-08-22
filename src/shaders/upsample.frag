@@ -1,8 +1,6 @@
 
 varying vec2 uv;
 
-
-
 uniform sampler2D texUnit;
 uniform float offset;
 uniform vec2 halfpixel;
@@ -29,8 +27,7 @@ void main(void)
         vec2 uv2 = vec2(uv.x, 1.0 - uv.y);
         float alpha = texture2D(alphaMask, uv2).a;
         if (alpha == 0.) {
-            gl_FragColor = texture2D(original, uv);
-            return;
+            discard;
         }
         gl_FragColor = mix(texture2D(original, uv), sum(), alpha);
     } else {

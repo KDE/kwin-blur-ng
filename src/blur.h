@@ -36,6 +36,9 @@ struct BlurNGEffectData
     /// area covered by either masks
     QRegion region;
 
+    uint frameIndex = 0;
+    QRect lastBackgroundRect;
+
     /// The render data per screen. Screens can have different color spaces.
     std::unordered_map<Output *, BlurNGRenderData> render;
 };
@@ -121,6 +124,7 @@ private:
     int m_offset;
     int m_expandSize;
     int m_noiseStrength;
+    uint m_blurUpdateInterval = 1;
 
     struct OffsetStruct
     {
